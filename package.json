@@ -1,0 +1,42 @@
+{
+    "name": "supermarket-system",
+    "version": "1.0.0",
+    "description": "API pour le système de gestion de clients et réclamations.",
+    "type": "module",
+    "main": "app.js",
+    "scripts": {
+        "start": "nodemon app.js",
+        "test": "node --experimental-vm-modules node_modules/jasmine/bin/jasmine.js",
+        "migrate": "npx prisma migrate deploy",
+        "migrate-and-start": "npm run migrate && npm start"
+    },
+    "dependencies": {
+        "@prisma/client": "^5.21.1",
+        "bcrypt": "^5.1.1",
+        "bcryptjs": "^2.4.3",
+        "body-parser": "^1.20.3",
+        "cors": "^2.8.5",
+        "dotenv": "^16.4.5",
+        "express": "^4.17.1",
+        "express-validator": "7.2.0",
+        "helmet": "8.0.0",
+        "http-status-codes": "2.3.0",
+        "i18next": "23.16.4",
+        "i18next-express-middleware": "2.0.0",
+        "jasmine": "5.4.0",
+        "jsonwebtoken": "^9.0.2",
+        "nodemailer": "6.9.15",
+        "prisma": "5.21.1",
+        "require": "2.4.20"
+    },
+    "devDependencies": {
+        "eslint": "^7.32.0",
+        "eslint-config-prettier": "^8.3.0",
+        "eslint-plugin-prettier": "^4.0.0",
+        "jasmine-spec-reporter": "^7.0.0",
+        "nodemon": "^3.1.7",
+        "prettier": "^2.4.1"
+    },
+    "author": "Ton Nom",
+    "license": "ISC"
+}
