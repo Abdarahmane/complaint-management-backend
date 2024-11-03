@@ -1,18 +1,28 @@
 import pkg from '@prisma/client';
-const { PrismaClient } = pkg;
+import { body, validationResult } from 'express-validator';
 
+const { PrismaClient } = pkg;
 const prisma = new PrismaClient();
 
-export const createPriority = async (req, res) => {
-    try {
-        const priority = await prisma.priority.create({
-            data: req.body
-        });
-        res.status(201).json(priority);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+export const createPriority = [
+    body('name').notEmpty().withMessage('Priority name is required'),
+    async (req, res) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        try {
+            const priority = await prisma.priority.create({
+                data: req.body
+            });
+            res.status(201).json(priority);
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ error: "An error occurred while creating the priority." });
+        }
     }
-};
+];
 
 export const getPriorities = async (req, res) => {
     try {

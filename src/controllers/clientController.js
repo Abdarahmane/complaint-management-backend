@@ -1,19 +1,29 @@
 import pkg from '@prisma/client';
-const { PrismaClient } = pkg;
+import { body, validationResult } from 'express-validator';
 
+const { PrismaClient } = pkg;
 const prisma = new PrismaClient();
 
-// Créer un client
-export const createClient = async (req, res) => {
-    try {
-        const client = await prisma.client.create({
-            data: req.body
-        });
-        res.status(201).json(client);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+export const createClient = [
+    body('name').notEmpty().withMessage('Name is required'),
+    body('email').isEmail().withMessage('Invalid email format'),
+    async (req, res) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        try {
+            const client = await prisma.client.create({
+                data: req.body
+            });
+            res.status(201).json(client);
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ error: "An error occurred while creating the client." });
+        }
     }
-};
+];
 
 // Récupérer tous les clients
 export const getClients = async (req, res) => {

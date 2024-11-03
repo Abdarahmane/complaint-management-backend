@@ -1,3 +1,9 @@
+
+enum Role {
+  admin
+  employer
+}
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,13 +19,13 @@ model Client {
   email      String      @unique @db.VarChar(100)
   name       String      @db.VarChar(50)
   address    String      @db.VarChar(100)
-  complaints Complaint[] // One-to-many relation with Complaint
+  complaints Complaint[]
 }
 
 model Priority {
   id         Int         @id @default(autoincrement())
   name       String      @unique @db.VarChar(50)
-  complaints Complaint[] // One-to-many relation with Complaint
+  complaints Complaint[] 
 }
 
 model Category {
@@ -32,8 +38,8 @@ model User {
   id                 Int         @id @default(autoincrement())
   email              String      @unique @db.VarChar(100)
   password           String      @db.VarChar(255)
-  role               String      @db.VarChar(100)
-  complaintsAssigned Complaint[] @relation("UserComplaintRelation") // One-to-many relation with Complaint (as assigned handler)
+  role               Role        // Utilisation de l'énumération Role
+  complaintsAssigned Complaint[] @relation("UserComplaintRelation") 
 }
 
 model Complaint {

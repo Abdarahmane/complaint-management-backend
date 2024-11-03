@@ -1,41 +1,66 @@
 import pkg from '@prisma/client';
 import bcrypt from 'bcrypt';
+import { body, validationResult } from 'express-validator';
 
 const { PrismaClient } = pkg;
 const prisma = new PrismaClient();
 
-export const createUser = async (req, res) => {
-    try {
-        const { email, password, role } = req.body;
-        const hashedPassword = await bcrypt.hash(password, 10);
 
-        const existingUser = await prisma.user.findUnique({
-            where: { email }
-        });
-
-        if (existingUser) {
-            return res.status(400).json({ error: "Email already in use" });
+export const createUser = [
+    body('email').isEmail().withMessage('Invalid email format'),
+    body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long'),
+    body('role').isIn(['admin', 'employer']).withMessage('Role must be either admin or employer'),
+    async (req, res) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
         }
 
-        const user = await prisma.user.create({
-            data: {
-                email,
-                password: hashedPassword,
-                role: role === "ADMIN" ? "ADMIN" : "GESTIONNAIRE"
-            }
-        });
+        try {
+            const { email, password, role } = req.body;
+            const hashedPassword = await bcrypt.hash(password, 10);
 
-        res.status(201).json(user);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: error.message });
+            const existingUser = await prisma.user.findUnique({
+                where: { email }
+            });
+
+            if (existingUser) {
+                return res.status(400).json({ error: "Email already in use" });
+            }
+
+            const user = await prisma.user.create({
+                data: {
+                    email,
+                    password: hashedPassword,
+                    role
+                }
+            });
+
+            res.status(201).json(user);
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ error: "An error occurred while creating the user." });
+        }
     }
-};
+];
 
 export const getUsers = async (req, res) => {
+    const { page = 1, limit = 10 } = req.query; // Default values for pagination
+    const skip = (page - 1) * limit;
+
     try {
-        const users = await prisma.user.findMany();
-        res.status(200).json(users);
+        const users = await prisma.user.findMany({
+            skip: parseInt(skip),
+            take: parseInt(limit)
+        });
+        const totalUsers = await prisma.user.count();
+
+        res.status(200).json({
+            data: users,
+            total: totalUsers,
+            page: parseInt(page),
+            totalPages: Math.ceil(totalUsers / limit)
+        });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: error.message });
@@ -67,7 +92,7 @@ export const updateUser = async (req, res) => {
 
         const dataToUpdate = {
             email,
-            role: role === "ADMIN" ? "ADMIN" : "GESTIONNAIRE"
+            role: role === "admin" ? "admin" : "employer"
         };
 
         if (password) {

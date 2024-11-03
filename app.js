@@ -2,6 +2,7 @@ import express from 'express';
 import pkg from '@prisma/client';
 import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
+import cors from 'cors'; // Importer cors
 
 // Import routes
 import userRoutes from './src/routes/userRoutes.js';
@@ -18,7 +19,13 @@ dotenv.config();
 const app = express();
 const { PrismaClient } = pkg;
 
-// Middleware to parse JSON requests
+// Middleware CORS
+app.use(cors({
+  origin: 'http://localhost:5174', // Remplacez par l'URL de votre frontend si nécessaire
+  credentials: true, // Si vous utilisez des cookies ou des sessions
+}));
+
+// Middleware pour analyser les requêtes JSON
 app.use(express.json());
 
 // Routes pour l'authentification
@@ -26,10 +33,10 @@ app.use('/auth', loginRouter);
 
 // Routes protégées pour chaque entité
 app.use('/api/users', userRoutes);
-app.use('/api/clients', authenticateUser, clientRoutes);
-app.use('/api/priorities', authenticateUser, priorityRoutes);
-app.use('/api/categories', authenticateUser, categoryRoutes);
-app.use('/api/complaints', authenticateUser, complaintRoutes);
+app.use('/api/clients', clientRoutes);
+app.use('/api/priorities', priorityRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/complaints', complaintRoutes);
 
 // Gestion des erreurs pour les routes non définies
 app.use((req, res, next) => {
