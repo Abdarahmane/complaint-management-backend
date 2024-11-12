@@ -3,6 +3,9 @@ import { getUsers } from '../controllers/userController.js';
 
 // Validator for creating a user
 export const createUserValidator = [
+  check('name')
+    .notEmpty()
+    .withMessage('Name is required.'),
   check('email')
     .isEmail()
     .withMessage('Invalid email format.'),
@@ -32,8 +35,12 @@ export const getUserByIdValidator = [
   },
 ];
 
-// Validator for updating a user (assuming only email and password are updated)
+// Validator for updating a user (assuming only email, password, and name are updated)
 export const updateUserValidator = [
+  check('name')
+    .optional()
+    .notEmpty()
+    .withMessage('Name cannot be empty if provided.'),
   check('email')
     .optional()
     .isEmail()
