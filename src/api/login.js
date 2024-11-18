@@ -55,32 +55,45 @@ router.post('/login', async (req, res) => {
     const { email, password } = req.body;
 
     try {
+        // Vérifier si l'utilisateur existe
         const user = await prisma.user.findUnique({
             where: { email },
         });
 
         if (!user) {
-            return res.status(401).json({ error: 'Invalid email or password' });
+            return res.status(401).json({ error: 'Email ou mot de passe incorrect.' });
         }
 
-        // Compare the hashed password with the provided password
+        // Vérifier si le mot de passe est valide
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
-            return res.status(401).json({ error: 'Invalid email or password' });
+            return res.status(401).json({ error: 'Email ou mot de passe incorrect.' });
         }
 
+        // Générer un token JWT
         const token = jwt.sign(
             { userId: user.id, role: user.role },
             JWT_SECRET,
-            { expiresIn: '1h' }
+            { expiresIn: '24h' } // Durée de validité du token
         );
 
-        res.json({ message: 'Login successful', token });
+        // Envoyer la réponse avec un message de succès
+        res.status(200).json({
+            message: 'Connexion réussie !',
+            token,
+            role: user.role,
+            user: {
+                id: user.id,
+                email: user.email,
+                role: user.role,
+            },
+        });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'An error occurred during login' });
+        console.error('Erreur lors de la connexion :', err);
+        res.status(500).json({ error: 'Une erreur interne est survenue. Veuillez réessayer plus tard.' });
     }
 });
+
 
 // Exporter le routeur pour une utilisation dans app.js
 export default router;

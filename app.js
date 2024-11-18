@@ -21,7 +21,7 @@ const { PrismaClient } = pkg;
 
 // Middleware CORS
 app.use(cors({
-  origin: 'http://localhost:5174', // Remplacez par l'URL de votre frontend si nécessaire
+  origin: 'http://localhost:5173', // Remplacez par l'URL de votre frontend si nécessaire
   credentials: true, // Si vous utilisez des cookies ou des sessions
 }));
 
