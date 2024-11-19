@@ -1,6 +1,6 @@
 import express from 'express';
 import { createComplaint, getComplaints, getComplaintById, updateComplaint, deleteComplaint } from '../controllers/complaintController.js';
-import { createComplaintValidator, getComplaintByIdValidator, updateComplaintValidator, deleteComplaintValidator } from '../validators/complaintValidator.js';
+
 
 const router = express.Router();
 

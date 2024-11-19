@@ -39,8 +39,7 @@ export const createUser = [
                 }
             });
 
-            // Envoi de l'email de bienvenue
-            await sendWelcomeEmail(email, name);
+            
 
             res.status(201).json(user);
         } catch (error) {
@@ -49,6 +48,49 @@ export const createUser = [
         }
     }
 ];
+
+
+export const mettreAjourProfil = async (req, res) => {
+    const { nom, email, password } = req.body;
+    const utilisateurId = req.user.id;
+
+    if (!utilisateurId) {
+        return res.status(400).json({ message: "Utilisateur non trouvé." });
+    }
+
+    try {
+        const dataToUpdate = {};
+
+        if (nom) dataToUpdate.nom = nom;
+        if (email) dataToUpdate.email = email;
+        if (password) dataToUpdate.password = await bcrypt.hash(password, 10);
+
+        // Vérifier si l'email est déjà utilisé
+        if (email) {
+            const utilisateurExistant = await prisma.user.findUnique({
+                where: { email }
+            });
+
+            if (utilisateurExistant && utilisateurExistant.id !== utilisateurId) {
+                return res.status(400).json({ message: "L'email est déjà utilisé." });
+            }
+        }
+
+        const utilisateurMisAJour = await prisma.user.update({
+            where: { id: utilisateurId },
+            data: dataToUpdate
+        });
+
+        return res.status(200).json({
+            message: "Profil mis à jour avec succès.",
+            utilisateur: utilisateurMisAJour
+        });
+    } catch (error) {
+        console.error("Erreur lors de la mise à jour du profil :", error);
+        return res.status(500).json({ message: "Erreur serveur." });
+    }
+};
+
 
 // Récupération de tous les utilisateurs avec pagination
 export const getUsers = async (req, res) => {

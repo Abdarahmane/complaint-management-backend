@@ -10,7 +10,8 @@ import clientRoutes from './src/routes/clientRoutes.js';
 import priorityRoutes from './src/routes/priorityRoutes.js';
 import categoryRoutes from './src/routes/categoryRoutes.js';
 import complaintRoutes from './src/routes/complaintRoutes.js';
-import loginRouter from './src/api/login.js'; // Assurez-vous d'importer le bon fichier
+import loginRouter from './src/api/login.js';
+import passwordRoute from './src/api/forgetpassword.js'
 
 // Import authentication middleware
 import { authenticateUser } from './src/middlewares/authentication.js';
@@ -30,6 +31,7 @@ app.use(express.json());
 
 // Routes pour l'authentification
 app.use('/auth', loginRouter);
+app.use('/api', passwordRoute);
 
 // Routes protégées pour chaque entité
 app.use('/api/users', userRoutes);

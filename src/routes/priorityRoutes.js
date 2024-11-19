@@ -1,6 +1,6 @@
 import express from 'express';
 import { createPriority, getPriorities, getPriorityById, updatePriority, deletePriority } from '../controllers/priorityController.js';
-import { createComplaintValidator, getComplaintByIdValidator, updateComplaintValidator, deleteComplaintValidator } from '../validators/complaintValidator.js';
+import { createPriorityValidator, getPriorityByIdValidator, updatePriorityValidator, deletePriorityValidator } from '../validators/priorityValidator.js';
 const router = express.Router();
 
 router.post('/', createPriority); // Créer une priorité

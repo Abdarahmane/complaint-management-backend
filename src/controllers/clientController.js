@@ -5,8 +5,40 @@ const { PrismaClient } = pkg;
 const prisma = new PrismaClient();
 
 export const createClient = [
-    body('name').notEmpty().withMessage('Name is required'),
-    body('email').isEmail().withMessage('Invalid email format'),
+    // Validation pour le champ 'name'
+    body('name')
+        .notEmpty()
+        .withMessage('Le nom est obligatoire.')
+        .bail()
+        .matches(/^[A-Za-zÀ-ÖØ-öø-ÿ\s'-]+$/)
+        .withMessage('Le nom contient des caractères invalides.')
+        .bail()
+        .isLength({ min: 2 })
+        .withMessage('Le nom doit comporter au moins 2 caractères.')
+        .bail(),
+    
+    // Validation pour le champ 'telephone'
+    body('telephone')
+        .notEmpty()
+        .withMessage('Le numéro de téléphone est obligatoire.')
+        .bail()
+        .matches(/^[0-9]+$/)
+        .withMessage('Le numéro de téléphone contient des caractères invalides.')
+        .bail()
+        .isLength({ min: 8, max: 15 })
+        .withMessage('Le numéro de téléphone doit avoir entre 8 et 15 caractères.')
+        .bail()
+        .custom(async value => {
+            const clientExistant = await prisma.client.findUnique({
+                where: { telephone: value }
+            });
+            if (clientExistant) {
+                throw new Error('Ce numéro de téléphone est déjà utilisé.');
+            }
+            return true;
+        }),
+
+    // Fonction pour traiter la requête après la validation
     async (req, res) => {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
