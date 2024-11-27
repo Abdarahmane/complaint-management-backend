@@ -1,6 +1,5 @@
 import express from 'express';
 import { createClient, getClients, getClientById, updateClient, deleteClient } from '../controllers/clientController.js';
-import { createClientValidator, getClientByIdValidator, updateClientValidator, deleteClientValidator } from '../validators/clientValidator.js';
 const router = express.Router();
 
 router.post('/', createClient); // Créer un client

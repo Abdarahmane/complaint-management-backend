@@ -1,6 +1,6 @@
 import express from 'express';
 import { createCategory, getCategories, getCategoryById, updateCategory, deleteCategory } from '../controllers/categoryController.js';
-import { createComplaintValidator, getComplaintByIdValidator, updateComplaintValidator, deleteComplaintValidator } from '../validators/complaintValidator.js';
+
 const router = express.Router();
 
 router.post('/', createCategory); // Créer une catégorie

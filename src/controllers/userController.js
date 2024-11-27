@@ -1,141 +1,79 @@
 import pkg from '@prisma/client';
 import bcrypt from 'bcrypt';
 import { body, validationResult } from 'express-validator';
-import { sendWelcomeEmail } from '../services/emailService.js';
 
 const { PrismaClient } = pkg;
 const prisma = new PrismaClient();
 
-// Création d'un nouvel utilisateur avec validation
+// Middleware de validation des entrées
+const validateInputs = (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        const formattedErrors = errors.array().map(err => ({
+            field: err.param,
+            message: err.msg,
+        }));
+        return res.status(400).json({
+            status: 'error',
+            message: 'Des erreurs de validation ont été rencontrées.',
+            details: formattedErrors,
+        });
+    }
+    next();
+};
+
+// **1. Création d'un utilisateur**
+// **1. Création d'un utilisateur**
 export const createUser = [
-    body('email').isEmail().withMessage('Invalid email format'),
-    body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long'),
-    body('role').isIn(['admin', 'employer']).withMessage('Role must be either admin or employer'),
-    body('name').notEmpty().withMessage('Name is required'),
+    body('email')
+        .isEmail()
+        .withMessage('L\'email doit être valide.')
+        .normalizeEmail(),
+    body('password')
+        .isLength({ min: 6 })
+        .withMessage('Le mot de passe doit contenir au moins 6 caractères.'),
+    body('role')
+        .isIn(['admin', 'employer'])
+        .withMessage('Le rôle doit être "admin" ou "employer".'),
+    body('name')
+        .notEmpty()
+        .withMessage('Le nom est obligatoire.')
+        .isAlpha('fr-FR', { ignore: ' ' })
+        .withMessage('Le nom ne doit contenir que des lettres.'),
+    validateInputs,
     async (req, res) => {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
-        }
+        const { email, password, role, name } = req.body;
 
         try {
-            const { email, password, role, name } = req.body;
-            const hashedPassword = await bcrypt.hash(password, 10);
-
-            const existingUser = await prisma.user.findUnique({
-                where: { email }
-            });
-
+            const existingUser = await prisma.user.findUnique({ where: { email } });
             if (existingUser) {
-                return res.status(400).json({ error: "Email already in use" });
+                return res.status(400).json({
+                    status: 'error',
+                    message: 'Cet email est déjà utilisé par un autre compte.',
+                });
             }
 
+            const hashedPassword = await bcrypt.hash(password, 10);
             const user = await prisma.user.create({
-                data: {
-                    email,
-                    password: hashedPassword,
-                    role,
-                    name
-                }
+                data: { email, password: hashedPassword, role, name },
             });
 
-            
-
-            res.status(201).json(user);
+            res.status(201).json({
+                status: 'success',
+                message: 'Utilisateur créé avec succès.',
+                data: user,
+            });
         } catch (error) {
             console.error(error);
-            res.status(500).json({ error: "An error occurred while creating the user." });
+            res.status(500).json({
+                status: 'error',
+                message: 'Une erreur interne est survenue lors de la création de l\'utilisateur.',
+            });
         }
-    }
+    },
 ];
 
-
-export const mettreAjourProfil = async (req, res) => {
-    const { nom, email, password } = req.body;
-    const utilisateurId = req.user.id;
-
-    if (!utilisateurId) {
-        return res.status(400).json({ message: "Utilisateur non trouvé." });
-    }
-
-    try {
-        const dataToUpdate = {};
-
-        if (nom) dataToUpdate.nom = nom;
-        if (email) dataToUpdate.email = email;
-        if (password) dataToUpdate.password = await bcrypt.hash(password, 10);
-
-        // Vérifier si l'email est déjà utilisé
-        if (email) {
-            const utilisateurExistant = await prisma.user.findUnique({
-                where: { email }
-            });
-
-            if (utilisateurExistant && utilisateurExistant.id !== utilisateurId) {
-                return res.status(400).json({ message: "L'email est déjà utilisé." });
-            }
-        }
-
-        const utilisateurMisAJour = await prisma.user.update({
-            where: { id: utilisateurId },
-            data: dataToUpdate
-        });
-
-        return res.status(200).json({
-            message: "Profil mis à jour avec succès.",
-            utilisateur: utilisateurMisAJour
-        });
-    } catch (error) {
-        console.error("Erreur lors de la mise à jour du profil :", error);
-        return res.status(500).json({ message: "Erreur serveur." });
-    }
-};
-
-
-// Récupération de tous les utilisateurs avec pagination
-export const getUsers = async (req, res) => {
-    const { page = 1, limit = 10 } = req.query;
-    const skip = (page - 1) * limit;
-
-    try {
-        const users = await prisma.user.findMany({
-            skip: parseInt(skip),
-            take: parseInt(limit)
-        });
-        const totalUsers = await prisma.user.count();
-
-        res.status(200).json({
-            data: users,
-            total: totalUsers,
-            page: parseInt(page),
-            totalPages: Math.ceil(totalUsers / limit)
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: error.message });
-    }
-};
-
-// Récupération d'un utilisateur par ID
-export const getUserById = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const user = await prisma.user.findUnique({
-            where: { id: parseInt(id) }
-        });
-
-        if (user) {
-            res.status(200).json(user);
-        } else {
-            res.status(404).json({ error: "User not found" });
-        }
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: error.message });
-    }
-};
-
-// Mise à jour d'un utilisateur par ID
+// **2. Mise à jour d'un utilisateur (sans modification du mot de passe)**
 export const updateUser = async (req, res) => {
     try {
         const { id } = req.params;
@@ -172,16 +110,73 @@ export const updateUser = async (req, res) => {
     }
 };
 
-// Suppression d'un utilisateur par ID
+
+// **3. Suppression d'un utilisateur**
 export const deleteUser = async (req, res) => {
+    const { id } = req.params;
+
     try {
-        const { id } = req.params;
-        await prisma.user.delete({
-            where: { id: parseInt(id) }
+        const user = await prisma.user.findUnique({ where: { id: parseInt(id) } });
+        if (!user) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Utilisateur non trouvé.',
+            });
+        }
+
+        await prisma.user.delete({ where: { id: parseInt(id) } });
+        res.status(200).json({
+            status: 'success',
+            message: 'Utilisateur supprimé avec succès.',
         });
-        res.status(204).end();
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({
+            status: 'error',
+            message: 'Une erreur interne est survenue lors de la suppression de l\'utilisateur.',
+        });
+    }
+};
+
+// **4. Obtenir un utilisateur par ID**
+export const getUserById = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const user = await prisma.user.findUnique({ where: { id: parseInt(id) } });
+        if (!user) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Utilisateur non trouvé.',
+            });
+        }
+
+        res.status(200).json({
+            status: 'success',
+            data: user,
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Une erreur interne est survenue lors de la récupération de l\'utilisateur.',
+        });
+    }
+};
+
+// **5. Obtenir tous les utilisateurs**
+export const getUsers = async (req, res) => {
+    try {
+        const users = await prisma.user.findMany();
+        res.status(200).json({
+            status: 'success',
+            data: users,
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Une erreur interne est survenue lors de la récupération des utilisateurs.',
+        });
     }
 };

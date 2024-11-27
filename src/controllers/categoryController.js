@@ -20,6 +20,8 @@ export const createCategory = [
         .withMessage('Le nom de la catégorie est obligatoire.')
         .isString()
         .withMessage('Le nom de la catégorie doit être une chaîne de caractères.')
+        .matches(/^[^\d]*$/)
+        .withMessage('Le nom de la catégorie ne doit pas contenir de chiffres.')
         .isLength({ max: 50 })
         .withMessage('Le nom de la catégorie ne peut pas dépasser 50 caractères.'),
     handleValidationErrors,
@@ -99,6 +101,8 @@ export const updateCategory = [
         .withMessage('Le champ "name" ne doit pas être vide.')
         .isString()
         .withMessage('Le nom de la catégorie doit être une chaîne de caractères.')
+        .matches(/^[^\d]*$/)
+        .withMessage('Le nom de la catégorie ne doit pas contenir de chiffres.')
         .isLength({ max: 50 })
         .withMessage('Le nom de la catégorie ne peut pas dépasser 50 caractères.'),
     handleValidationErrors,
@@ -131,14 +135,16 @@ export const updateCategory = [
 
 // Suppression d'une catégorie avec validation
 export const deleteCategory = [
+    // Validation de l'ID dans les paramètres de la requête
     param('id')
         .isInt({ gt: 0 })
         .withMessage("L'ID doit être un entier positif."),
-    handleValidationErrors,
+    handleValidationErrors, // Middleware pour gérer les erreurs de validation
     async (req, res) => {
         try {
             const { id } = req.params;
 
+            // Vérifier si la catégorie existe
             const existingCategory = await prisma.category.findUnique({
                 where: { id: parseInt(id) },
             });
@@ -147,15 +153,41 @@ export const deleteCategory = [
                 return res.status(404).json({ error: 'Catégorie non trouvée.' });
             }
 
+            // Vérifier si la catégorie est liée à une réclamation
+            const linkedComplaint = await prisma.complaint.findFirst({
+                where: { categoryId: parseInt(id) },
+            });
+
+            if (linkedComplaint) {
+                return res.status(400).json({
+                    error: 'Impossible de supprimer cette catégorie car elle est liée à une réclamation.',
+                });
+            }
+
+            // Supprimer la catégorie si elle n'est pas liée à une réclamation
             await prisma.category.delete({
                 where: { id: parseInt(id) },
             });
 
-            res.status(204).end();
+            return res.status(200).json({ message: 'Catégorie supprimée avec succès.' });
         } catch (error) {
-            res.status(500).json({
+            console.error('Erreur lors de la suppression de la catégorie :', error);
+            return res.status(500).json({
                 error: "Une erreur s'est produite lors de la suppression de la catégorie.",
             });
         }
     },
 ];
+
+//             await prisma.category.delete({
+//                 where: { id: parseInt(id) },
+//             });
+
+//             res.status(204).end();
+//         } catch (error) {
+//             res.status(500).json({
+//                 error: "Une erreur s'est produite lors de la suppression de la catégorie.",
+//             });
+//         }
+//     },
+// ];
